@@ -580,7 +580,7 @@ def main(unused_argv):
         else:
           train_model.init(all_features, FLAGS.seed + 1, FLAGS.alpha)
         if FLAGS.start_from_checkpoint:
-            epoch = int(FLAGS.checkpoint_name[FLAGS.checkpoint_name.index(".") - 1]) + 1
+            epoch = int(FLAGS.checkpoint_name[FLAGS.checkpoint_name.rfind('_')+1:FLAGS.checkpoint_name.index(".")]) + 1
             step = epoch * FLAGS.train_steps
             train_model.restore_model(FLAGS.checkpoint_name, only_load_processor=False)
 
