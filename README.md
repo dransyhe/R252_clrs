@@ -1,4 +1,12 @@
-# The CLRS Algorithmic Reasoning Benchmark
+# R252_clrs
+
+The repository was originally forked from `deepmind/clrs` then later detached. 
+
+
+-------------------------------------------------------------------------------
+
+
+## The CLRS Algorithmic Reasoning Benchmark
 
 Learning representations of algorithms is an emerging area of machine learning,
 seeking to bridge concepts from neural networks with classical algorithms. The
