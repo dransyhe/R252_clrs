@@ -48,6 +48,7 @@ flags.DEFINE_enum('encoder_init', 'default',
                   ['default', 'xavier_on_scalars', 'large'],
                   'Initialiser to use for the encoders.')
 flags.DEFINE_integer('save_model_epochs', 2, 'Save the model on every how many epochs.')
+flags.DEFINE_float('alpha', 1.0, 'Coefficient to scale the initialisation.')
 
 # Other parameters
 flags.DEFINE_integer('length_needle', -8,
@@ -577,7 +578,7 @@ def main(unused_argv):
               for _ in range(len(train_lengths))]
           train_model.init(all_length_features[:-1], FLAGS.seed + 1)
         else:
-          train_model.init(all_features, FLAGS.seed + 1)
+          train_model.init(all_features, FLAGS.seed + 1, FLAGS.alpha)
         if FLAGS.start_from_checkpoint:
             epoch = int(FLAGS.checkpoint_name[FLAGS.checkpoint_name.index(".") - 1]) + 1
             step = epoch * FLAGS.train_steps

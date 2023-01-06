@@ -283,7 +283,7 @@ class BaselineModel(model.Model):
     self.jitted_accum_opt_update = func(accum_opt_update, donate_argnums=[0, 2],
                                         **extra_args)
 
-  def init(self, features: Union[_Features, List[_Features]], seed: _Seed):
+  def init(self, features: Union[_Features, List[_Features]], seed: _Seed, alpha=1.0):
     if not isinstance(features, list):
       assert len(self._spec) == 1
       features = [features]
@@ -291,6 +291,15 @@ class BaselineModel(model.Model):
                                    algorithm_index=-1,
                                    return_hints=False,
                                    return_all_outputs=False)
+
+    # Scale self.params by a coefficient of alpha
+    params = self.params.copy()
+    for layer, _ in params.items():
+        if 'w' in params[layer]:
+            weights = params[layer]['w'] * alpha
+            params[layer]['w'] = weights
+    self.params = params
+
     self.opt_state = self.opt.init(self.params)
     # We will use the optimizer state skeleton for traversal when we
     # want to avoid updating the state of params of untrained algorithms.
