@@ -44,6 +44,10 @@ flags.DEFINE_integer('val_samples', 100, 'Number of validation samples for each 
 flags.DEFINE_integer('epochs', 3, 'Number of epochs for training.')
 flags.DEFINE_integer('train_steps', 5, 'Number of training iterations per epoch.')
 flags.DEFINE_float('learning_rate', 0.0001, 'Learning rate to use.')
+flags.DEFINE_enum('encoder_init', 'default',
+                  ['default', 'xavier_on_scalars', 'large'],
+                  'Initialiser to use for the encoders.')
+flags.DEFINE_integer('save_model_epochs', 2, 'Save the model on every how many epochs.')
 
 # Other parameters
 flags.DEFINE_integer('length_needle', -8,
@@ -108,9 +112,6 @@ flags.DEFINE_boolean('use_lstm', False,
 flags.DEFINE_integer('nb_triplet_fts', 8,
                      'How many triplet features to compute?')
 
-flags.DEFINE_enum('encoder_init', 'default',
-                  ['default', 'xavier_on_scalars', 'large'],
-                  'Initialiser to use for the encoders.')
 flags.DEFINE_enum('processor_type', 'triplet_mpnn',
                   ['deepsets', 'mpnn', 'pgn', 'pgn_mask',
                    'triplet_mpnn', 'triplet_pgn', 'triplet_pgn_mask',
@@ -683,9 +684,10 @@ def main(unused_argv):
           csv_writers[algo_idx].writerow(val_dict)
           val_scores[algo_idx] = sum(val_accuracies) / len(val_accuracies)
 
-          # logging.info('Checkpointing algorithm %s for epoch %d', FLAGS.algorithms[algo_idx], epoch)
-          # checkpoint_name = FLAGS.algorithms[algo_idx] + '_epoch_' + str(epoch) + '.pkl' 
-          # train_model.save_model(checkpoint_name)
+          if epoch % FLAGS.save_model_epochs == 0:
+              logging.info('Checkpointing algorithm %s for epoch %d', FLAGS.algorithms[algo_idx], epoch)
+              checkpoint_name = FLAGS.algorithms[algo_idx] + '_epoch_' + str(epoch) + '.pkl'
+              train_model.save_model(checkpoint_name)
 
 
         # If best total score, update best checkpoint.
