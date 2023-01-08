@@ -49,6 +49,7 @@ flags.DEFINE_enum('encoder_init', 'default',
                   'Initialiser to use for the encoders.')
 flags.DEFINE_integer('save_model_epochs', 2, 'Save the model on every how many epochs.')
 flags.DEFINE_float('alpha', 1.0, 'Coefficient to scale the initialisation.')
+flags.DEFINE_float('beta', 1.0, 'Coefficient to rescale weights for constrained optimisation.')
 
 # Other parameters
 flags.DEFINE_integer('length_needle', -8,
@@ -600,7 +601,7 @@ def main(unused_argv):
           length_and_algo_idx = algo_idx
     
         start_time = time.time()
-        cur_loss, cur_lr = train_model.feedback(rng_key, feedback, length_and_algo_idx)
+        cur_loss, cur_lr = train_model.feedback(rng_key, feedback, length_and_algo_idx, FLAGS.beta)
         time_per_step = time.time() - start_time
         time_per_epoch += time_per_step
 

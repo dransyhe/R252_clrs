@@ -379,7 +379,7 @@ class BaselineModel(model.Model):
     return  loss, grads
 
   def feedback(self, rng_key: hk.PRNGSequence, feedback: _Feedback,
-               algorithm_index=None) -> float:
+               algorithm_index=None, beta=1.0) -> float:
     if algorithm_index is None:
       assert len(self._spec) == 1
       algorithm_index = 0
@@ -390,6 +390,13 @@ class BaselineModel(model.Model):
         self._device_params, rng_keys, feedback,
         self._device_opt_state, algorithm_index)
     lr = self._device_opt_state.hyperparams['learning_rate']
+
+    # Rescale params by a coefficient of beta for constrained optimisation
+    for layer, _ in self._device_params.items():
+        if 'w' in self._device_params[layer]:
+            weights = self._device_params[layer]['w'] * beta
+            self._device_params[layer]['w'] = weights
+
     loss = _maybe_pick_first_pmapped(loss)
     return loss, lr
 
