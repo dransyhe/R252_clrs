@@ -49,7 +49,7 @@ flags.DEFINE_enum('encoder_init', 'default',
                   'Initialiser to use for the encoders.')
 flags.DEFINE_integer('save_model_epochs', 2, 'Save the model on every how many epochs.')
 flags.DEFINE_float('alpha', 1.0, 'Coefficient to scale the initialisation.')
-flags.DEFINE_float('beta', 1.0, 'Coefficient to rescale weights for constrained optimisation.')
+flags.DEFINE_boolean('constrained', False, 'Whether to use constrained minimisation.')
 
 # Other parameters
 flags.DEFINE_integer('length_needle', -8,
@@ -560,6 +560,7 @@ def main(unused_argv):
   # until all algos have had at least one evaluation.
   val_scores = [-99999.9] * len(FLAGS.algorithms)
   length_idx = 0
+  original_weight_norms = {}
 
   while epoch < FLAGS.epochs:
     time_per_epoch = 0
@@ -584,6 +585,11 @@ def main(unused_argv):
             epoch = int(FLAGS.checkpoint_name[FLAGS.checkpoint_name.rfind('_')+1:FLAGS.checkpoint_name.index(".")]) + 1
             step = epoch * FLAGS.train_steps
             train_model.restore_model(FLAGS.checkpoint_name, only_load_processor=False)
+        # Compute original weight norms
+        for layer, _ in train_model.params.items():
+            if 'w' in train_model.params[layer]:
+                norm = jax.numpy.linalg.norm(train_model.params[layer]['w'], ord=2)
+                original_weight_norms[layer] = norm
 
         csv_files, csv_writers = setup_csv(train_model)
 
@@ -601,7 +607,8 @@ def main(unused_argv):
           length_and_algo_idx = algo_idx
     
         start_time = time.time()
-        cur_loss, cur_lr = train_model.feedback(rng_key, feedback, length_and_algo_idx, FLAGS.beta)
+        cur_loss, cur_lr = train_model.feedback(rng_key, feedback, length_and_algo_idx,
+                                                FLAGS.constrained, original_weight_norms)
         time_per_step = time.time() - start_time
         time_per_epoch += time_per_step
 
