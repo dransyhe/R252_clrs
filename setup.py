@@ -49,7 +49,7 @@ setup(
     license='Apache 2.0',
     author='DeepMind',
     description=('The CLRS Algorithmic Reasoning Benchmark.'),
-    long_description=open(os.path.join(_CURRENT_DIR, 'README.md')).read(),
+    long_description=open(os.path.join(_CURRENT_DIR, 'README.md'), encoding="utf8").read(),
     long_description_content_type='text/markdown',
     author_email='clrs-dev@google.com',
     keywords='python machine learning',
