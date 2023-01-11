@@ -479,6 +479,10 @@ def setup_csv(train_model):
         fieldnames.append(layer + '.weight_norm')
         # fieldnames.append(layer + '.weight_list')
 
+    # Track node test accuracy: only the 16 node case
+    for i in range(16):
+        fieldnames.append('node_' + str(i))
+
     
     csv_writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     csv_writer.writeheader()
@@ -665,6 +669,7 @@ def main(unused_argv):
           new_rng_key, rng_key = jax.random.split(rng_key)
           val_losses = []
           val_accuracies = []
+          val_nodes_16 = []
           for i, sampler in enumerate(val_samplers[algo_idx]):
               val_loss, val_stats = collect_and_eval(
                   sampler,
@@ -675,11 +680,14 @@ def main(unused_argv):
                   new_rng_key,
                   decode_hints,
                   extras=common_extras)
-              logging.info('(val) algo %s size %d epoch %d: loss=%f, %s',
+              logging.info('(val) algo %s size %d epoch %d: loss=%f, score=%f, step=%d, algorithm=%s',
                            FLAGS.algorithms[algo_idx], val_lengths[i], epoch,
-                           val_loss, val_stats)
+                           val_loss, val_stats['score'], val_stats['step'], val_stats['algorithm'])
               val_losses += [val_loss]
               val_accuracies += [val_stats['score']]
+              # Only record 16 node case
+              if i == 0:
+                  val_nodes_16 = val_stats['node_score']
 
           val_dict = {}
           for i, length in enumerate(val_lengths):
@@ -690,6 +698,8 @@ def main(unused_argv):
           val_dict["len_val_ds"] = val_sample_counts[algo_idx]
           val_dict["time_per_epoch"] = time_per_epoch
           val_dict["epoch"] = epoch
+          for i in range(16):
+              val_dict[f"node_{i}"] = val_nodes_16[i]
           csv_writers[algo_idx].writerow(val_dict)
           val_scores[algo_idx] = sum(val_accuracies) / len(val_accuracies)
 

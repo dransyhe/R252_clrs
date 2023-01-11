@@ -20,6 +20,7 @@ import chex
 from clrs._src import probing
 from clrs._src import specs
 import numpy as np
+import jax
 
 
 _Array = chex.Array
@@ -128,14 +129,16 @@ def evaluate(
 ) -> Dict[str, float]:
   """Evaluate output predictions."""
   evals = {}
+  evals_node = {}
   outputs = _reduce_permutations_tuple(outputs)
   predictions = _reduce_permutations_dict(predictions)
   for truth in outputs:
     assert truth.name in predictions
     pred = predictions[truth.name]
-    evals[truth.name] = _evaluate(truth, pred)
+    evals[truth.name], evals_node[truth.name] = _evaluate(truth, pred)
   # Return a single scalar score that is the mean of all output scores.
   evals['score'] = sum([v.item() for v in evals.values()]) / len(evals)
+  evals['node_score'] = np.average(list(evals_node.values()), axis=0)
   return evals
 
 
@@ -154,7 +157,13 @@ def _evaluate(truth, pred, idx=None, lengths=None):
       return 0.
     truth_data = truth_data[idx][idx < lengths]
     pred_data = pred_data[idx < lengths]
-  return _EVAL_FN[truth.type_](pred_data, truth_data)
+  score = _EVAL_FN[truth.type_](pred_data, truth_data)
+  if truth.type_ == specs.Type.POINTER:
+    node_score = _EVAL_POINTER(pred_data, truth_data)
+    node_score = jax.numpy.average(node_score, axis=0)
+  else:
+    node_score = None
+  return score, node_score
 
 
 def _eval_one(pred, truth):
@@ -198,5 +207,7 @@ _EVAL_FN = {
     specs.Type.CATEGORICAL:
         _eval_one,
     specs.Type.POINTER:
-        lambda pred, truth: np.mean((pred == truth) * 1.0),
+        lambda pred, truth: (np.mean((pred == truth) * 1.0)),
 }
+
+_EVAL_POINTER = lambda pred, truth: (pred == truth) * 1.0
