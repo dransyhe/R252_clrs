@@ -1,3 +1,9 @@
+
+results/
+figures/
+checkpoints/
+
+
 # Building and releasing library:
 *.egg-info
 *.pyc

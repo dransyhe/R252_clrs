@@ -31,7 +31,7 @@ from clrs._src import specs
 import haiku as hk
 import jax
 import jax.numpy as jnp
-
+import numpy as np
 
 _Array = chex.Array
 _DataPoint = probing.DataPoint
@@ -86,10 +86,14 @@ class Net(hk.Module):
       nb_dims=None,
       nb_msg_passing_steps=1,
       name: str = 'net',
+      encode_callbacks: List = [],
+      process_callbacks: List = []
   ):
     """Constructs a `Net`."""
     super().__init__(name=name)
 
+    self.encode_callbacks = encode_callbacks 
+    self.process_callbacks = process_callbacks
     self._dropout_prob = dropout_prob
     self._hint_teacher_forcing = hint_teacher_forcing
     self._hint_repred_mode = hint_repred_mode
@@ -396,6 +400,11 @@ class Net(hk.Module):
         except Exception as e:
           raise Exception(f'Failed to process {dp}') from e
 
+    for cb in self.encode_callbacks:
+      # jax.pure_callback(cb, [np.zeros((32,128))], graph_fts)
+      # jax.debug.callback(cb, graph_fts)
+      jax.debug.callback(cb, edge_fts, node_fts, graph_fts)
+      # cb(edge_fts.__array__(), node_fts.__array__(), graph_fts.__array__())
     # PROCESS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     nxt_hidden = hidden
     for _ in range(self.nb_msg_passing_steps):
@@ -424,6 +433,10 @@ class Net(hk.Module):
       e_t = jnp.concatenate([edge_fts, nxt_edge], axis=-1)
     else:
       e_t = edge_fts
+
+    for cb in self.process_callbacks:
+      # cb(nxt_hidden.__array__(), nxt_edge.__array__())
+      jax.debug.callback(cb, nxt_hidden, nxt_edge)
 
     # DECODE ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Decode features and (optionally) hints.

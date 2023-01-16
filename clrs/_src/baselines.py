@@ -167,6 +167,8 @@ class BaselineModel(model.Model):
       hint_repred_mode: str = 'soft',
       name: str = 'base_model',
       nb_msg_passing_steps: int = 1,
+      process_callbacks: List = [],
+      encode_callbacks: List = []
   ):
     """Constructor for BaselineModel.
 
@@ -217,6 +219,9 @@ class BaselineModel(model.Model):
     """
     super(BaselineModel, self).__init__(spec=spec)
 
+    self.encode_callbacks = encode_callbacks
+    self.process_callbacks = process_callbacks
+
     if encode_hints and not decode_hints:
       raise ValueError('`encode_hints=True`, `decode_hints=False` is invalid.')
 
@@ -262,7 +267,8 @@ class BaselineModel(model.Model):
                       processor_factory, use_lstm, encoder_init,
                       dropout_prob, hint_teacher_forcing,
                       hint_repred_mode,
-                      self.nb_dims, self.nb_msg_passing_steps)(*args, **kwargs)
+                      self.nb_dims, self.nb_msg_passing_steps, "net",
+                      self.encode_callbacks, self.process_callbacks)(*args, **kwargs)
 
     self.net_fn = hk.transform(_use_net)
     pmap_args = dict(axis_name='batch', devices=jax.local_devices())
@@ -499,6 +505,18 @@ class BaselineModel(model.Model):
   def restore_model(self, file_name: str, only_load_processor: bool = False):
     """Restore model from `file_name`."""
     path = os.path.join(self.checkpoint_path, file_name)
+    self.restore_model_from_path(path, only_load_processor)
+    # with open(path, 'rb') as f:
+    #   restored_state = pickle.load(f)
+    #   if only_load_processor:
+    #     restored_params = _filter_in_processor(restored_state['params'])
+    #   else:
+    #     restored_params = restored_state['params']
+    #   self.params = hk.data_structures.merge(self.params, restored_params)
+    #   self.opt_state = restored_state['opt_state']
+
+  def restore_model_from_path(self, path,  only_load_processor: bool = False):
+    """Restore model from `path`."""
     with open(path, 'rb') as f:
       restored_state = pickle.load(f)
       if only_load_processor:
